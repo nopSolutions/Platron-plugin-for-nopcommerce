@@ -1,0 +1,99 @@
+﻿@{
+    Layout = "";
+}
+@model Nop.Plugin.Payments.Platron.Models.ConfigurationModel
+@using Nop.Web.Framework;
+@Html.Action("StoreScopeConfiguration", "Setting", new { area = "Admin" })
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <table class="adminContent">
+        <tr>
+            <td colspan="2">
+                <b>If you're using this gateway ensure that your primary store currency is supported by Platron</b>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <b>For plug-in configuration, you must perform the following actions:</b>
+                <ul>
+                    <li>Sign up on the website Platron.ru</li>
+                    <li>Sign in to your personal cabinet</li>
+                    <li>Fill out the field «Platron Merchan ID» and «Secret key»</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <hr/>
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.MerchantIdOverrideForStore, model => model.MerchantId, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.MerchantId):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.MerchantId)
+                @Html.ValidationMessageFor(model => model.MerchantId)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.SecretKeyOverrideForStore, model => model.SecretKey, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.SecretKey):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.SecretKey)
+                @Html.ValidationMessageFor(model => model.SecretKey)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.TestingModeOverrideForStore, model => model.TestingMode, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.TestingMode):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.TestingMode)
+                @Html.ValidationMessageFor(model => model.TestingMode)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.DescriptionTamplateOverrideForStore, model => model.DescriptionTamplate, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.DescriptionTamplate):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.DescriptionTamplate)
+                @Html.ValidationMessageFor(model => model.DescriptionTamplate)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.AdditionalFeeOverrideForStore, model => model.AdditionalFee, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.AdditionalFee):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.AdditionalFee)
+                @Html.ValidationMessageFor(model => model.AdditionalFee)
+            </td>
+        </tr>
+        <tr>
+            <td class="adminTitle">
+                @Html.OverrideStoreCheckboxFor(model => model.AdditionalFeePercentageOverrideForStore, model => model.AdditionalFeePercentage, Model.ActiveStoreScopeConfiguration)
+                @Html.NopLabelFor(model => model.AdditionalFeePercentage):
+            </td>
+            <td class="adminData">
+                @Html.EditorFor(model => model.AdditionalFeePercentage)
+                @Html.ValidationMessageFor(model => model.AdditionalFeePercentage)
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="2">
+                <input type="submit" name="save" class="k-button" value="@T("Admin.Common.Save")" />
+            </td>
+        </tr>
+    </table>
+    
+}
