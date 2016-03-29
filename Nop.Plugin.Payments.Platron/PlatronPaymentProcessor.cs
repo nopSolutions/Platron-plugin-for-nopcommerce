@@ -148,30 +148,34 @@ namespace Nop.Plugin.Payments.Platron
                 data = client.UploadValues(PLATRON_RESULTS_URL, postData);
             }
 
-            var ms = new MemoryStream(data);
-            var sr = new StreamReader(ms);
-            var rez = sr.ReadToEnd();
-
-            if (!rez.Contains("?xml"))
-                return new string[3];
-
-            try
+            using (var ms = new MemoryStream(data))
             {
-                var doc = XDocument.Parse(rez);
+                using (var sr = new StreamReader(ms))
+                {
+                    var rez = sr.ReadToEnd();
 
-                var root = doc.Root;
+                    if (!rez.Contains("?xml"))
+                        return new string[3];
 
-                var status = root.Element("pg_status").Value;
-                var paimentStatusElement = root.Element("pg_transaction_status");
-                var paimentStatus = paimentStatusElement == null ? String.Empty : paimentStatusElement.Value;
-                var errorElement = root.Element("pg_error_description");
-                var error = errorElement == null ? String.Empty : errorElement.Value;
+                    try
+                    {
+                        var doc = XDocument.Parse(rez);
 
-                return new[] {status, paimentStatus, error};
-            }
-            catch (NullReferenceException)
-            {
-                return new string[3];
+                        var root = doc.Root;
+
+                        var status = root.Element("pg_status").Value;
+                        var paimentStatusElement = root.Element("pg_transaction_status");
+                        var paimentStatus = paimentStatusElement == null ? String.Empty : paimentStatusElement.Value;
+                        var errorElement = root.Element("pg_error_description");
+                        var error = errorElement == null ? String.Empty : errorElement.Value;
+
+                        return new[] {status, paimentStatus, error};
+                    }
+                    catch (NullReferenceException)
+                    {
+                        return new string[3];
+                    }
+                }
             }
         }
 
