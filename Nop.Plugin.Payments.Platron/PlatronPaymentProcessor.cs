@@ -41,7 +41,6 @@ namespace Nop.Plugin.Payments.Platron
         private const string PLATRON_URL = "https://www.platron.ru/payment.php";
         private const string PLATRON_RESULTS_URL = "https://www.platron.ru/get_status.php";
 
-
         #endregion
 
         #region Ctor
@@ -72,7 +71,7 @@ namespace Nop.Plugin.Payments.Platron
         /// <returns>Process payment result</returns>
         public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
         {
-            return new ProcessPaymentResult {NewPaymentStatus = PaymentStatus.Pending};
+            return new ProcessPaymentResult { NewPaymentStatus = PaymentStatus.Pending };
         }
 
         /// <summary>
@@ -102,9 +101,9 @@ namespace Nop.Plugin.Payments.Platron
             post.Add("pg_request_method", "POST");
             post.Add("pg_success_url_method", "GET");
             post.Add("pg_failure_url_method", "GET");
-            post.Add("pg_testing_mode", (_platronPaymentSettings.TestingMode?1:0).ToString());
+            post.Add("pg_testing_mode", (_platronPaymentSettings.TestingMode ? 1 : 0).ToString());
             //suppression check payment
-            post.Add("pg_check_url", "");
+            post.Add("pg_check_url", String.Empty);
             var siteUrl = _storeContext.CurrentStore.Url.TrimEnd('/');
             var failUrl = String.Format("{0}/{1}", siteUrl, "Plugins/Platron/CancelOrder");
             var successUrl = String.Format("{0}/{1}", siteUrl, "Plugins/Platron/Success");
@@ -135,9 +134,9 @@ namespace Nop.Plugin.Payments.Platron
             //create and send post data
             var postData = new NameValueCollection
             {
-                {"pg_merchant_id", _platronPaymentSettings.MerchantId},
-                {"pg_order_id", orderId},
-                {"pg_salt", CommonHelper.GenerateRandomDigitCode(8)}
+                { "pg_merchant_id", _platronPaymentSettings.MerchantId },
+                { "pg_order_id", orderId },
+                { "pg_salt", CommonHelper.GenerateRandomDigitCode(8) }
             };
 
             postData.Add("pg_sig", GetSignature(GetScriptName(PLATRON_RESULTS_URL), postData));
@@ -169,7 +168,7 @@ namespace Nop.Plugin.Payments.Platron
                         var errorElement = root.Element("pg_error_description");
                         var error = errorElement == null ? String.Empty : errorElement.Value;
 
-                        return new[] {status, paimentStatus, error};
+                        return new[] { status, paimentStatus, error };
                     }
                     catch (NullReferenceException)
                     {
@@ -186,8 +185,8 @@ namespace Nop.Plugin.Payments.Platron
         /// <param name="postData"></param>
         /// <returns>List of query parameters</returns>
         public string GetSignature(string scriptName, NameValueCollection postData)
-        {
-            var signature = postData.AllKeys.OrderBy(s => s).Aggregate(scriptName+";", (current, key) => current + postData[key] + ";");
+        { 
+            var signature = postData.AllKeys.OrderBy(s => s).Aggregate(scriptName + ";", (current, key) => current + postData[key] + ";");
             signature += _platronPaymentSettings.SecretKey;
            
             return GetMD5(signature).ToLower();

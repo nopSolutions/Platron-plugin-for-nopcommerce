@@ -32,8 +32,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
         private readonly PaymentSettings _paymentSettings;
         private readonly ILocalizationService _localizationService;
         private readonly IWebHelper _webHelper;
-
-
+        
         public PaymentPlatronController(IWorkContext workContext,
             IStoreService storeService, 
             ISettingService settingService, 
@@ -146,13 +145,13 @@ namespace Nop.Plugin.Payments.Platron.Controllers
         private ContentResult GetResponse(string textToResponse, PlatronPaymentProcessor processor, bool success = false)
         {
             var status = success ? "ok" : "error";
-            if(!success)
+            if (!success)
                 _logger.Error(String.Format("Platron. {0}", textToResponse));
 
             var postData = new NameValueCollection
             {
-                {"pg_status", status},
-                {"pg_salt", CommonHelper.GenerateRandomDigitCode(8)}
+                { "pg_status", status },
+                { "pg_salt", CommonHelper.GenerateRandomDigitCode(8) }
             };
             if (!success)
                 postData.Add("pg_error_description", textToResponse);
@@ -161,7 +160,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
 
             const string rez = "<?xml version=\"1.0\" encoding=\"utf - 8\"?><response>{0}</response>";
 
-            var content = postData.AllKeys.Select(key => String.Format("<{0}>{1}</{0}>", key, postData[key])).Aggregate("", (all, curent) => all + curent);
+            var content = postData.AllKeys.Select(key => String.Format("<{0}>{1}</{0}>", key, postData[key])).Aggregate(String.Empty, (all, curent) => all + curent);
 
             return Content(String.Format(rez, content), "text/xml", Encoding.UTF8);
         }
@@ -242,7 +241,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             if (checkDataString != signature)
                 return GetResponse("Invalid order data", processor);
 
-            if(result == "0")
+            if (result == "0")
                 return GetResponse("The payment has been canceled", processor, true);
 
             //mark order as paid
@@ -274,7 +273,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 order = _orderService.GetOrderByGuid(orderGuid);
 
             if (order == null)
-                return RedirectToAction("Index", "Home", new {area = ""});
+                return RedirectToAction("Index", "Home", new { area = String.Empty });
 
             //update payment status if need
             if (order.PaymentStatus == PaymentStatus.Paid)
@@ -284,7 +283,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                     UpdateOrderStatus(order, status[1]);
             }
 
-            return RedirectToRoute("CheckoutCompleted", new {orderId = order.Id});
+            return RedirectToRoute("CheckoutCompleted", new { orderId = order.Id });
         }
 
         public ActionResult CancelOrder(FormCollection form)
@@ -297,7 +296,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 order = _orderService.GetOrderByGuid(orderGuid);
 
             if (order == null)
-                return RedirectToAction("Index", "Home", new {area = ""});
+                return RedirectToAction("Index", "Home", new { area = String.Empty });
 
             //update payment status if need
             if (order.PaymentStatus != PaymentStatus.Voided)
@@ -307,7 +306,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                     UpdateOrderStatus(order, status[1]);
             }
 
-            return RedirectToRoute("OrderDetails", new {orderId = order.Id});
+            return RedirectToRoute("OrderDetails", new { orderId = order.Id });
         }
 
         public override IList<string> ValidatePaymentForm(FormCollection form)
