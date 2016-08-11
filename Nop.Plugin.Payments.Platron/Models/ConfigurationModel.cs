@@ -32,7 +32,7 @@ namespace Nop.Plugin.Payments.Platron.Models
         /// Template description of the order for the Platron system
         /// </summary>
         [NopResourceDisplayName("Plugins.Payments.Platron.Fields.DescriptionTamplate")]
-        public string DescriptionTamplate { get; set; }
+        public string DescriptionTemplate { get; set; }
         public bool DescriptionTamplateOverrideForStore { get; set; }
 
         /// <summary>

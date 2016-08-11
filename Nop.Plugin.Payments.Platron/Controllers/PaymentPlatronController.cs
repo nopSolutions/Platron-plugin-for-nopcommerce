@@ -114,7 +114,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             platronPaymentSettings.MerchantId = model.MerchantId;
             platronPaymentSettings.SecretKey = model.SecretKey;
             platronPaymentSettings.TestingMode = model.TestingMode;
-            platronPaymentSettings.DescriptionTamplate = model.DescriptionTamplate;
+            platronPaymentSettings.DescriptionTemplate = model.DescriptionTemplate;
             platronPaymentSettings.AdditionalFee = model.AdditionalFee;
             platronPaymentSettings.AdditionalFeePercentage = model.AdditionalFeePercentage;
 
@@ -278,7 +278,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             //update payment status if need
             if (order.PaymentStatus == PaymentStatus.Paid)
             {
-                var status = GetPaymentProcessor().GetPaimentStatus(orderId);
+                var status = GetPaymentProcessor().GetPaymentStatus(orderId);
                 if (status[0].ToLower() == "ok")
                     UpdateOrderStatus(order, status[1]);
             }
@@ -301,7 +301,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             //update payment status if need
             if (order.PaymentStatus != PaymentStatus.Voided)
             {
-                var status = GetPaymentProcessor().GetPaimentStatus(orderId);
+                var status = GetPaymentProcessor().GetPaymentStatus(orderId);
                 if (status[0].ToLower() == "ok")
                     UpdateOrderStatus(order, status[1]);
             }

@@ -96,7 +96,7 @@ namespace Nop.Plugin.Payments.Platron
             //Russian rubles code in the payment system does not correspond to the conventional
             post.Add("pg_currency", _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode.Replace("RUB", "RUR"));
             post.Add("pg_amount", amount);
-            post.Add("pg_description", _platronPaymentSettings.DescriptionTamplate.Replace("$orderId", postProcessPaymentRequest.Order.Id.ToString()));
+            post.Add("pg_description", _platronPaymentSettings.DescriptionTemplate.Replace("$orderId", postProcessPaymentRequest.Order.Id.ToString()));
             post.Add("pg_salt", CommonHelper.GenerateRandomDigitCode(8));
             post.Add("pg_request_method", "POST");
             post.Add("pg_success_url_method", "GET");
@@ -129,7 +129,7 @@ namespace Nop.Plugin.Payments.Platron
         /// Second: Payment status (partial, pending, ok, failed, revoked)
         /// Third: query error if the status of the request "error", or empty
         /// </returns>
-        public string[] GetPaimentStatus(string orderId)
+        public string[] GetPaymentStatus(string orderId)
         {
             //create and send post data
             var postData = new NameValueCollection
@@ -163,12 +163,12 @@ namespace Nop.Plugin.Payments.Platron
                         var root = doc.Root;
 
                         var status = root.Element("pg_status").Value;
-                        var paimentStatusElement = root.Element("pg_transaction_status");
-                        var paimentStatus = paimentStatusElement == null ? String.Empty : paimentStatusElement.Value;
+                        var paymentStatusElement = root.Element("pg_transaction_status");
+                        var paymentStatus = paymentStatusElement == null ? String.Empty : paymentStatusElement.Value;
                         var errorElement = root.Element("pg_error_description");
                         var error = errorElement == null ? String.Empty : errorElement.Value;
 
-                        return new[] { status, paimentStatus, error };
+                        return new[] { status, paymentStatus, error };
                     }
                     catch (NullReferenceException)
                     {

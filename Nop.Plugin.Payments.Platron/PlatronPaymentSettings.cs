@@ -22,7 +22,7 @@ namespace Nop.Plugin.Payments.Platron
         /// <summary>
         /// Template description of the order for the Platron system
         /// </summary>
-        public string DescriptionTamplate { get; set; }
+        public string DescriptionTemplate { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to "additional fee" is specified as percentage. true - percentage, false - fixed value
