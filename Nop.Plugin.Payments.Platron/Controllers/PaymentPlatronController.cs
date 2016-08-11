@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Web.Mvc;
 using Nop.Core;
@@ -63,15 +62,15 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var platronPaymentSettings = _settingService.LoadSetting<PlatronPaymentSettings>(storeScope);
 
-            if (!platronPaymentSettings.DescriptionTamplate.Any())
-                platronPaymentSettings.DescriptionTamplate = ORDER_DESCRIPTION;
+            if (!platronPaymentSettings.DescriptionTemplate.Any())
+                platronPaymentSettings.DescriptionTemplate = ORDER_DESCRIPTION;
 
             var model = new ConfigurationModel
             {
                 MerchantId = platronPaymentSettings.MerchantId,
                 SecretKey = platronPaymentSettings.SecretKey,
                 TestingMode = platronPaymentSettings.TestingMode,
-                DescriptionTamplate = platronPaymentSettings.DescriptionTamplate,
+                DescriptionTemplate = platronPaymentSettings.DescriptionTemplate,
                 AdditionalFee = platronPaymentSettings.AdditionalFee,
                 AdditionalFeePercentage = platronPaymentSettings.AdditionalFeePercentage,
                 ActiveStoreScopeConfiguration = storeScope
@@ -82,20 +81,12 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 model.MerchantIdOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.MerchantId, storeScope);
                 model.SecretKeyOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.SecretKey, storeScope);
                 model.TestingModeOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.TestingMode, storeScope);
-                model.DescriptionTamplateOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.DescriptionTamplate, storeScope);
+                model.DescriptionTamplateOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.DescriptionTemplate, storeScope);
                 model.AdditionalFeeOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.AdditionalFee, storeScope);
                 model.AdditionalFeePercentageOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.AdditionalFeePercentage, storeScope);
             }
 
             return View("~/Plugins/Payments.Platron/Views/PaymentPlatron/Configure.cshtml", model);
-        }
-
-        private void UpdateSetting<TPropType>(int storeScope, bool overrideForStore, PlatronPaymentSettings settings, Expression<Func<PlatronPaymentSettings, TPropType>> keySelector)
-        {
-            if (overrideForStore || storeScope == 0)
-                _settingService.SaveSetting(settings, keySelector, storeScope, false);
-            else if (storeScope > 0)
-                _settingService.DeleteSetting(settings, keySelector, storeScope);
         }
 
         [HttpPost]
@@ -121,12 +112,12 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             /* We do not clear cache after each setting update.
              * This behavior can increase performance because cached settings will not be cleared 
              * and loaded from database after each update */
-            UpdateSetting(storeScope, model.MerchantIdOverrideForStore, platronPaymentSettings, x => x.MerchantId);
-            UpdateSetting(storeScope, model.SecretKeyOverrideForStore, platronPaymentSettings, x => x.SecretKey);
-            UpdateSetting(storeScope, model.TestingModeOverrideForStore, platronPaymentSettings, x => x.TestingMode);
-            UpdateSetting(storeScope, model.DescriptionTamplateOverrideForStore, platronPaymentSettings, x => x.DescriptionTamplate);
-            UpdateSetting(storeScope, model.AdditionalFeeOverrideForStore, platronPaymentSettings, x => x.AdditionalFee);
-            UpdateSetting(storeScope, model.AdditionalFeePercentageOverrideForStore, platronPaymentSettings, x => x.AdditionalFeePercentage);
+            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.MerchantId, model.MerchantIdOverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.SecretKey, model.SecretKeyOverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.TestingMode, model.TestingModeOverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.DescriptionTemplate, model.DescriptionTamplateOverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.AdditionalFee, model.AdditionalFeeOverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.AdditionalFeePercentage, model.AdditionalFeePercentageOverrideForStore, storeScope, false);
 
             //now clear settings cache
             _settingService.ClearCache();
