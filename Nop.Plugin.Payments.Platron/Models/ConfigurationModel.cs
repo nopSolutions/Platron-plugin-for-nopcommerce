@@ -33,7 +33,7 @@ namespace Nop.Plugin.Payments.Platron.Models
         /// </summary>
         [NopResourceDisplayName("Plugins.Payments.Platron.Fields.DescriptionTamplate")]
         public string DescriptionTemplate { get; set; }
-        public bool DescriptionTamplateOverrideForStore { get; set; }
+        public bool DescriptionTemplateOverrideForStore { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to "additional fee" is specified as percentage. true - percentage, false - fixed value

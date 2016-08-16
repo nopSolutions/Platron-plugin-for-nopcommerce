@@ -55,12 +55,12 @@
 
                 <div class="form-group">
                     <div class="col-md-3">
-                        @Html.OverrideStoreCheckboxFor(model => model.DescriptionTamplateOverrideForStore, model => model.DescriptionTamplate, Model.ActiveStoreScopeConfiguration)
-                        @Html.NopLabelFor(model => model.DescriptionTamplate)
+                        @Html.OverrideStoreCheckboxFor(model => model.DescriptionTemplateOverrideForStore, model => model.DescriptionTemplate, Model.ActiveStoreScopeConfiguration)
+                        @Html.NopLabelFor(model => model.DescriptionTemplate)
                     </div>
                     <div class="col-md-9">
-                        @Html.NopEditorFor(model => model.DescriptionTamplate)
-                        @Html.ValidationMessageFor(model => model.DescriptionTamplate)
+                        @Html.NopEditorFor(model => model.DescriptionTemplate)
+                        @Html.ValidationMessageFor(model => model.DescriptionTemplate)
                     </div>
                 </div>
 

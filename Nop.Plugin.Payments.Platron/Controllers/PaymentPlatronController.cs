@@ -81,7 +81,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 model.MerchantIdOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.MerchantId, storeScope);
                 model.SecretKeyOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.SecretKey, storeScope);
                 model.TestingModeOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.TestingMode, storeScope);
-                model.DescriptionTamplateOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.DescriptionTemplate, storeScope);
+                model.DescriptionTemplateOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.DescriptionTemplate, storeScope);
                 model.AdditionalFeeOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.AdditionalFee, storeScope);
                 model.AdditionalFeePercentageOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.AdditionalFeePercentage, storeScope);
             }
@@ -115,7 +115,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.MerchantId, model.MerchantIdOverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.SecretKey, model.SecretKeyOverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.TestingMode, model.TestingModeOverrideForStore, storeScope, false);
-            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.DescriptionTemplate, model.DescriptionTamplateOverrideForStore, storeScope, false);
+            _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.DescriptionTemplate, model.DescriptionTemplateOverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.AdditionalFee, model.AdditionalFeeOverrideForStore, storeScope, false);
             _settingService.SaveSettingOverridablePerStore(platronPaymentSettings, x => x.AdditionalFeePercentage, model.AdditionalFeePercentageOverrideForStore, storeScope, false);
 
