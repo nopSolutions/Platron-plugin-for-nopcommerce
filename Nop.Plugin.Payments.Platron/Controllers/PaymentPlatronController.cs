@@ -86,7 +86,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 model.AdditionalFeePercentageOverrideForStore = _settingService.SettingExists(platronPaymentSettings, x => x.AdditionalFeePercentage, storeScope);
             }
 
-            return View("~/Plugins/Payments.Platron/Views/PaymentPlatron/Configure.cshtml", model);
+            return View("~/Plugins/Payments.Platron/Views/Configure.cshtml", model);
         }
 
         [HttpPost]
@@ -130,7 +130,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
         [ChildActionOnly]
         public ActionResult PaymentInfo()
         {
-            return View("~/Plugins/Payments.Platron/Views/PaymentPlatron/PaymentInfo.cshtml");
+            return View("~/Plugins/Payments.Platron/Views/PaymentInfo.cshtml");
         }
         
         private ContentResult GetResponse(string textToResponse, PlatronPaymentProcessor processor, bool success = false)

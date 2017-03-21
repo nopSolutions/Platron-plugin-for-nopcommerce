@@ -36,7 +36,8 @@ namespace Nop.Plugin.Payments.Platron
         private readonly ICurrencyService _currencyService;
         private readonly CurrencySettings _currencySettings;
         private readonly IOrderTotalCalculationService _orderTotalCalculationService;
-        private readonly IStoreContext _storeContext;
+        private readonly ILocalizationService _localizationService;
+        private readonly IWebHelper _webHelper;
 
         private const string PLATRON_URL = "https://www.platron.ru/payment.php";
         private const string PLATRON_RESULTS_URL = "https://www.platron.ru/get_status.php";
@@ -49,15 +50,17 @@ namespace Nop.Plugin.Payments.Platron
             ISettingService settingService,
             ICurrencyService currencyService,
             CurrencySettings currencySettings,
-            IOrderTotalCalculationService orderTotalCalculationService, 
-            IStoreContext storeContext)
+            IOrderTotalCalculationService orderTotalCalculationService,
+            ILocalizationService localizationService,
+            IWebHelper webHelper)
         {
             this._platronPaymentSettings = platronPaymentSettings;
             this._settingService = settingService;
             this._currencyService = currencyService;
             this._currencySettings = currencySettings;
             this._orderTotalCalculationService = orderTotalCalculationService;
-            this._storeContext = storeContext;
+            this._localizationService = localizationService;
+            this._webHelper = webHelper;
         }
 
         #endregion
@@ -93,8 +96,7 @@ namespace Nop.Plugin.Payments.Platron
             };
             post.Add("pg_merchant_id", _platronPaymentSettings.MerchantId);
             post.Add("pg_order_id", orderId);
-            //Russian rubles code in the payment system does not correspond to the conventional
-            post.Add("pg_currency", _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode.Replace("RUB", "RUR"));
+            post.Add("pg_currency", _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode);
             post.Add("pg_amount", amount);
             post.Add("pg_description", _platronPaymentSettings.DescriptionTemplate.Replace("$orderId", postProcessPaymentRequest.Order.Id.ToString()));
             post.Add("pg_salt", CommonHelper.GenerateRandomDigitCode(8));
@@ -104,10 +106,10 @@ namespace Nop.Plugin.Payments.Platron
             post.Add("pg_testing_mode", (_platronPaymentSettings.TestingMode ? 1 : 0).ToString());
             //suppression check payment
             post.Add("pg_check_url", String.Empty);
-            var siteUrl = _storeContext.CurrentStore.Url.TrimEnd('/');
-            var failUrl = String.Format("{0}/{1}", siteUrl, "Plugins/Platron/CancelOrder");
-            var successUrl = String.Format("{0}/{1}", siteUrl, "Plugins/Platron/Success");
-            var confirmPay = String.Format("{0}/{1}", siteUrl, "Plugins/Platron/ConfirmPay");
+            var siteUrl = _webHelper.GetStoreLocation();
+            var failUrl = String.Format("{0}{1}", siteUrl, "Plugins/Platron/CancelOrder");
+            var successUrl = String.Format("{0}{1}", siteUrl, "Plugins/Platron/Success");
+            var confirmPay = String.Format("{0}{1}", siteUrl, "Plugins/Platron/ConfirmPay");
 
             post.Add("pg_site_url", siteUrl);
             post.Add("pg_failure_url", failUrl);
@@ -319,6 +321,7 @@ namespace Nop.Plugin.Payments.Platron
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage.Hint", "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.");
             this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.RedirectionTip", "For payment you will be redirected to the website Platron.ru.");
+            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.PaymentMethodDescription", "For payment you will be redirected to the website Platron.ru.");
 
             base.Install();
         }
@@ -345,6 +348,7 @@ namespace Nop.Plugin.Payments.Platron
             this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage");
             this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage.Hint");
             this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.RedirectionTip");
+            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.PaymentMethodDescription");
 
             base.Uninstall();
         }
@@ -467,6 +471,14 @@ namespace Nop.Plugin.Payments.Platron
         public bool SkipPaymentInfo
         {
             get { return false; }
+        }
+
+        /// <summary>
+        /// Gets a payment method description that will be displayed on checkout pages in the public store
+        /// </summary>
+        public string PaymentMethodDescription
+        {
+            get { return _localizationService.GetResource("Plugins.Payments.Platron.Fields.PaymentMethodDescription"); }
         }
 
         #endregion
