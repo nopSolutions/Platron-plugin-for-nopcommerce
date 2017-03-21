@@ -93,8 +93,7 @@ namespace Nop.Plugin.Payments.Platron
             };
             post.Add("pg_merchant_id", _platronPaymentSettings.MerchantId);
             post.Add("pg_order_id", orderId);
-            //Russian rubles code in the payment system does not correspond to the conventional
-            post.Add("pg_currency", _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode.Replace("RUB", "RUR"));
+            post.Add("pg_currency", _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode);
             post.Add("pg_amount", amount);
             post.Add("pg_description", _platronPaymentSettings.DescriptionTamplate.Replace("$orderId", postProcessPaymentRequest.Order.Id.ToString()));
             post.Add("pg_salt", CommonHelper.GenerateRandomDigitCode(8));
