@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -13,8 +13,11 @@ using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
+using Nop.Services.Security;
 using Nop.Services.Stores;
+using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Mvc.Filters;
 
 namespace Nop.Plugin.Payments.Platron.Controllers
 {
@@ -31,6 +34,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
         private readonly PaymentSettings _paymentSettings;
         private readonly ILocalizationService _localizationService;
         private readonly IWebHelper _webHelper;
+        private readonly IPermissionService _permissionService;
         
         public PaymentPlatronController(IWorkContext workContext,
             IStoreService storeService, 
@@ -40,7 +44,9 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             IOrderProcessingService orderProcessingService, 
             ILogger logger,
             PaymentSettings paymentSettings, 
-            ILocalizationService localizationService, IWebHelper webHelper)
+            ILocalizationService localizationService, 
+            IWebHelper webHelper,
+            IPermissionService permissionService)
         {
             this._workContext = workContext;
             this._storeService = storeService;
@@ -52,14 +58,18 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             this._paymentSettings = paymentSettings;
             this._localizationService = localizationService;
             this._webHelper = webHelper;
+            this._permissionService = permissionService;
         }
 
-        [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure()
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult Configure()
         {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
+                return AccessDeniedView();
+
             //load settings for a chosen store scope
-            var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var platronPaymentSettings = _settingService.LoadSetting<PlatronPaymentSettings>(storeScope);
 
             if (!platronPaymentSettings.DescriptionTemplate.Any())
@@ -90,15 +100,18 @@ namespace Nop.Plugin.Payments.Platron.Controllers
         }
 
         [HttpPost]
-        [AdminAuthorize]
-        [ChildActionOnly]
-        public ActionResult Configure(ConfigurationModel model)
+        [AuthorizeAdmin]
+        [Area(AreaNames.Admin)]
+        public IActionResult Configure(ConfigurationModel model)
         {
+            if (!_permissionService.Authorize(StandardPermissionProvider.ManagePaymentMethods))
+                return AccessDeniedView();
+
             if (!ModelState.IsValid)
                 return Configure();
 
             //load settings for a chosen store scope
-            var storeScope = this.GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
             var platronPaymentSettings = _settingService.LoadSetting<PlatronPaymentSettings>(storeScope);
 
             //save settings
@@ -126,18 +139,12 @@ namespace Nop.Plugin.Payments.Platron.Controllers
 
             return Configure();
         }
-
-        [ChildActionOnly]
-        public ActionResult PaymentInfo()
-        {
-            return View("~/Plugins/Payments.Platron/Views/PaymentInfo.cshtml");
-        }
         
         private ContentResult GetResponse(string textToResponse, PlatronPaymentProcessor processor, bool success = false)
         {
             var status = success ? "ok" : "error";
             if (!success)
-                _logger.Error(String.Format("Platron. {0}", textToResponse));
+                _logger.Error($"Platron. {textToResponse}");
 
             var postData = new NameValueCollection
             {
@@ -147,18 +154,18 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             if (!success)
                 postData.Add("pg_error_description", textToResponse);
            
-            postData.Add("pg_sig", processor.GetSignature(processor.GetScriptName(Request.Url.LocalPath), postData));
+            postData.Add("pg_sig", processor.GetSignature(processor.GetScriptName(Request.Path), postData));
 
             const string rez = "<?xml version=\"1.0\" encoding=\"utf - 8\"?><response>{0}</response>";
 
-            var content = postData.AllKeys.Select(key => String.Format("<{0}>{1}</{0}>", key, postData[key])).Aggregate(String.Empty, (all, curent) => all + curent);
+            var content = postData.AllKeys.Select(key => string.Format("<{0}>{1}</{0}>", key, postData[key])).Aggregate(string.Empty, (all, curent) => all + curent);
 
-            return Content(String.Format(rez, content), "text/xml", Encoding.UTF8);
+            return Content(string.Format(rez, content), "text/xml", Encoding.UTF8);
         }
 
-        private string GetValue(string key, FormCollection form)
+        private string GetValue(string key, IFormCollection form)
         {
-            return (form.AllKeys.Contains(key) ? form[key] : _webHelper.QueryString<string>(key)) ?? String.Empty;
+            return (form.Keys.Contains(key) ? form[key].ToString() : _webHelper.QueryString<string>(key)) ?? string.Empty;
         }
 
         private void UpdateOrderStatus(Order order, string status)
@@ -186,8 +193,9 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             }
         }
 
-        public ActionResult ConfirmPay(FormCollection form)
+        public ActionResult ConfirmPay()
         {
+            var form = Request.Form;
             var processor = GetPaymentProcessor();
 
             const string orderIdKey = "pg_order_id";
@@ -200,18 +208,17 @@ namespace Nop.Plugin.Payments.Platron.Controllers
 
             Order order = null;
 
-            Guid orderGuid;
-            if (Guid.TryParse(orderId, out orderGuid))
+            if (Guid.TryParse(orderId, out Guid orderGuid))
             {
                 order = _orderService.GetOrderByGuid(orderGuid);
             }
-            
+
             if (order == null)
                 return GetResponse("Order cannot be loaded", processor);
 
             var sb = new StringBuilder();
             sb.AppendLine("Platron:");
-            foreach (var key in form.AllKeys)
+            foreach (var key in form.Keys)
             {
                 sb.AppendLine(key + ": " + form[key]);
             }
@@ -224,10 +231,14 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 CreatedOnUtc = DateTime.UtcNow
             });
             _orderService.UpdateOrder(order);
+           
+            var postData = new NameValueCollection();
+            foreach (var keyValuePair in form.Where(pair => !pair.Key.Equals(signatureKey, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                postData.Add(keyValuePair.Key, keyValuePair.Value);
+            }
             
-            form.Remove(signatureKey);
-
-            var checkDataString = processor.GetSignature(processor.GetScriptName(Request.Url.LocalPath), form);
+            var checkDataString = processor.GetSignature(processor.GetScriptName(Url.ToString()), postData);
 
             if (checkDataString != signature)
                 return GetResponse("Invalid order data", processor);
@@ -259,12 +270,11 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             var orderId = _webHelper.QueryString<string>("pg_order_id");
             Order order = null;
 
-            Guid orderGuid;
-            if (Guid.TryParse(orderId, out orderGuid))
+            if (Guid.TryParse(orderId, out Guid orderGuid))
                 order = _orderService.GetOrderByGuid(orderGuid);
 
             if (order == null)
-                return RedirectToAction("Index", "Home", new { area = String.Empty });
+                return RedirectToAction("Index", "Home", new { area = string.Empty });
 
             //update payment status if need
             if (order.PaymentStatus == PaymentStatus.Paid)
@@ -282,12 +292,11 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             var orderId = _webHelper.QueryString<string>("pg_order_id");
             Order order = null;
 
-            Guid orderGuid;
-            if (Guid.TryParse(orderId, out orderGuid))
+            if (Guid.TryParse(orderId, out Guid orderGuid))
                 order = _orderService.GetOrderByGuid(orderGuid);
 
             if (order == null)
-                return RedirectToAction("Index", "Home", new { area = String.Empty });
+                return RedirectToAction("Index", "Home", new { area = string.Empty });
 
             //update payment status if need
             if (order.PaymentStatus != PaymentStatus.Voided)
@@ -298,16 +307,6 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             }
 
             return RedirectToRoute("OrderDetails", new { orderId = order.Id });
-        }
-
-        public override IList<string> ValidatePaymentForm(FormCollection form)
-        {
-            return new List<string>();
-        }
-
-        public override ProcessPaymentRequest GetPaymentInfo(FormCollection form)
-        {
-            return new ProcessPaymentRequest();
         }
     }
 }

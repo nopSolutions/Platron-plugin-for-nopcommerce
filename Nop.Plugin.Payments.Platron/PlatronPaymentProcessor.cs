@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using System.Web.Routing;
 using System.Xml.Linq;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
@@ -21,6 +20,7 @@ using Nop.Services.Localization;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Web.Framework;
+using Microsoft.AspNetCore.Http;
 
 namespace Nop.Plugin.Payments.Platron
 {
@@ -85,7 +85,7 @@ namespace Nop.Plugin.Payments.Platron
         {
             var orderGuid = postProcessPaymentRequest.Order.OrderGuid;
             var orderTotal = postProcessPaymentRequest.Order.OrderTotal;
-            var amount = String.Format(CultureInfo.InvariantCulture, "{0:0.00}", orderTotal);
+            var amount = string.Format(CultureInfo.InvariantCulture, "{0:0.00}", orderTotal);
             var orderId = orderGuid.ToString();
 
             //create and send post data
@@ -105,11 +105,11 @@ namespace Nop.Plugin.Payments.Platron
             post.Add("pg_failure_url_method", "GET");
             post.Add("pg_testing_mode", (_platronPaymentSettings.TestingMode ? 1 : 0).ToString());
             //suppression check payment
-            post.Add("pg_check_url", String.Empty);
+            post.Add("pg_check_url", string.Empty);
             var siteUrl = _webHelper.GetStoreLocation();
-            var failUrl = String.Format("{0}{1}", siteUrl, "Plugins/Platron/CancelOrder");
-            var successUrl = String.Format("{0}{1}", siteUrl, "Plugins/Platron/Success");
-            var confirmPay = String.Format("{0}{1}", siteUrl, "Plugins/Platron/ConfirmPay");
+            var failUrl = $"{siteUrl}Plugins/Platron/CancelOrder";
+            var successUrl = $"{siteUrl}Plugins/Platron/Success";
+            var confirmPay = $"{siteUrl}Plugins/Platron/ConfirmPay";
 
             post.Add("pg_site_url", siteUrl);
             post.Add("pg_failure_url", failUrl);
@@ -166,9 +166,9 @@ namespace Nop.Plugin.Payments.Platron
 
                         var status = root.Element("pg_status").Value;
                         var paymentStatusElement = root.Element("pg_transaction_status");
-                        var paymentStatus = paymentStatusElement == null ? String.Empty : paymentStatusElement.Value;
+                        var paymentStatus = paymentStatusElement?.Value ?? string.Empty;
                         var errorElement = root.Element("pg_error_description");
-                        var error = errorElement == null ? String.Empty : errorElement.Value;
+                        var error = errorElement?.Value ?? string.Empty;
 
                         return new[] { status, paymentStatus, error };
                     }
@@ -263,30 +263,24 @@ namespace Nop.Plugin.Payments.Platron
             return !((DateTime.UtcNow - order.CreatedOnUtc).TotalSeconds < 5);
         }
 
-        /// <summary>
-        /// Gets a route for provider configuration
-        /// </summary>
-        /// <param name="actionName">Action name</param>
-        /// <param name="controllerName">Controller name</param>
-        /// <param name="routeValues">Route values</param>
-        public void GetConfigurationRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues)
+        public override string GetConfigurationPageUrl()
         {
-            actionName = "Configure";
-            controllerName = "PaymentPlatron";
-            routeValues = new RouteValueDictionary { { "Namespaces", "Nop.Plugin.Payments.Platron.Controllers" }, { "area", null } };
+            return $"{_webHelper.GetStoreLocation()}Admin/PaymentPlatron/Configure";
         }
 
-        /// <summary>
-        /// Gets a route for payment info
-        /// </summary>
-        /// <param name="actionName">Action name</param>
-        /// <param name="controllerName">Controller name</param>
-        /// <param name="routeValues">Route values</param>
-        public void GetPaymentInfoRoute(out string actionName, out string controllerName, out RouteValueDictionary routeValues)
+        public IList<string> ValidatePaymentForm(IFormCollection form)
         {
-            actionName = "PaymentInfo";
-            controllerName = "PaymentPlatron";
-            routeValues = new RouteValueDictionary { { "Namespaces", "Nop.Plugin.Payments.Platron.Controllers" }, { "area", null } };
+            return new List<string>();
+        }
+
+        public ProcessPaymentRequest GetPaymentInfo(IFormCollection form)
+        {
+            return new ProcessPaymentRequest();
+        }
+
+        public void GetPublicViewComponent(out string viewComponentName)
+        {
+            viewComponentName = "PaymentPlatron";
         }
 
         /// <summary>

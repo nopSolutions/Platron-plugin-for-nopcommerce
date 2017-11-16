@@ -1,32 +1,27 @@
-﻿using System.Web.Mvc;
-using System.Web.Routing;
-using Nop.Web.Framework.Mvc.Routes;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using Nop.Web.Framework.Mvc.Routing;
 
 namespace Nop.Plugin.Payments.Platron
 {
     public partial class RouteProvider : IRouteProvider
     {
-        public void RegisterRoutes(RouteCollection routes)
+        public void RegisterRoutes(IRouteBuilder routeBuilder)
         {
             //confirm pay
-            routes.MapRoute("Plugin.Payments.Platron.ConfirmPay",
+            routeBuilder.MapRoute("Plugin.Payments.Platron.ConfirmPay",
                  "Plugins/Platron/ConfirmPay",
-                 new { controller = "PaymentPlatron", action = "ConfirmPay" },
-                 new[] { "Nop.Plugin.Payments.Platron.Controllers" }
-            );
+                 new { controller = "PaymentPlatron", action = "ConfirmPay" });
             //cancel
-            routes.MapRoute("Plugin.Payments.Platron.CancelOrder",
+            routeBuilder.MapRoute("Plugin.Payments.Platron.CancelOrder",
                  "Plugins/Platron/CancelOrder",
-                 new { controller = "PaymentPlatron", action = "CancelOrder" },
-                 new[] { "Nop.Plugin.Payments.Platron.Controllers" }
-            );
+                 new { controller = "PaymentPlatron", action = "CancelOrder" });
             //success
-            routes.MapRoute("Plugin.Payments.Platron.Success",
+            routeBuilder.MapRoute("Plugin.Payments.Platron.Success",
                  "Plugins/Platron/Success",
-                 new { controller = "PaymentPlatron", action = "Success" },
-                 new[] { "Nop.Plugin.Payments.Platron.Controllers" }
-            );
+                 new { controller = "PaymentPlatron", action = "Success" });
         }
+
         public int Priority
         {
             get

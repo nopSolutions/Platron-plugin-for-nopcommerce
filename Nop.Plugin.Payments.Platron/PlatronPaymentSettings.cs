@@ -34,5 +34,4 @@ namespace Nop.Plugin.Payments.Platron
         /// </summary>
         public decimal AdditionalFee { get; set; }
     }
-
 }
