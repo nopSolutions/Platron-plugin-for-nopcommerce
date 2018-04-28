@@ -193,9 +193,9 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             }
         }
 
-        public ActionResult ConfirmPay()
+        public ActionResult ConfirmPay(IpnModel model)
         {
-            var form = Request.Form;
+            var form = model.Form;
             var processor = GetPaymentProcessor();
 
             const string orderIdKey = "pg_order_id";
