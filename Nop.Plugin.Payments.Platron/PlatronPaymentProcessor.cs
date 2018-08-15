@@ -13,11 +13,9 @@ using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Plugins;
-using Nop.Plugin.Payments.Platron.Controllers;
 using Nop.Services.Configuration;
 using Nop.Services.Directory;
 using Nop.Services.Localization;
-using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Web.Framework;
 using Microsoft.AspNetCore.Http;
@@ -31,13 +29,13 @@ namespace Nop.Plugin.Payments.Platron
     {
         #region Fields
 
-        private readonly PlatronPaymentSettings _platronPaymentSettings;
-        private readonly ISettingService _settingService;
         private readonly ICurrencyService _currencyService;
-        private readonly CurrencySettings _currencySettings;
-        private readonly IOrderTotalCalculationService _orderTotalCalculationService;
         private readonly ILocalizationService _localizationService;
+        private readonly IPaymentService _paymentService;
+        private readonly ISettingService _settingService;
         private readonly IWebHelper _webHelper;
+        private readonly CurrencySettings _currencySettings;
+        private readonly PlatronPaymentSettings _platronPaymentSettings;
 
         private const string PLATRON_URL = "https://www.platron.ru/payment.php";
         private const string PLATRON_RESULTS_URL = "https://www.platron.ru/get_status.php";
@@ -46,21 +44,21 @@ namespace Nop.Plugin.Payments.Platron
 
         #region Ctor
 
-        public PlatronPaymentProcessor(PlatronPaymentSettings platronPaymentSettings,
-            ISettingService settingService,
-            ICurrencyService currencyService,
-            CurrencySettings currencySettings,
-            IOrderTotalCalculationService orderTotalCalculationService,
+        public PlatronPaymentProcessor(ICurrencyService currencyService,
             ILocalizationService localizationService,
-            IWebHelper webHelper)
+            IPaymentService paymentService,
+            ISettingService settingService,
+            IWebHelper webHelper,
+            CurrencySettings currencySettings,
+            PlatronPaymentSettings platronPaymentSettings)
         {
-            this._platronPaymentSettings = platronPaymentSettings;
-            this._settingService = settingService;
             this._currencyService = currencyService;
-            this._currencySettings = currencySettings;
-            this._orderTotalCalculationService = orderTotalCalculationService;
             this._localizationService = localizationService;
+            this._paymentService = paymentService;
+            this._settingService = settingService;
             this._webHelper = webHelper;
+            this._currencySettings = currencySettings;
+            this._platronPaymentSettings = platronPaymentSettings;
         }
 
         #endregion
@@ -110,6 +108,7 @@ namespace Nop.Plugin.Payments.Platron
             var failUrl = $"{siteUrl}Plugins/Platron/CancelOrder";
             var successUrl = $"{siteUrl}Plugins/Platron/Success";
             var confirmPay = $"{siteUrl}Plugins/Platron/ConfirmPay";
+
 
             post.Add("pg_site_url", siteUrl);
             post.Add("pg_failure_url", failUrl);
@@ -187,10 +186,10 @@ namespace Nop.Plugin.Payments.Platron
         /// <param name="postData"></param>
         /// <returns>List of query parameters</returns>
         public string GetSignature(string scriptName, NameValueCollection postData)
-        { 
+        {
             var signature = postData.AllKeys.OrderBy(s => s).Aggregate(scriptName + ";", (current, key) => current + postData[key] + ";");
             signature += _platronPaymentSettings.SecretKey;
-           
+
             return GetMD5(signature).ToLower();
         }
 
@@ -246,7 +245,7 @@ namespace Nop.Plugin.Payments.Platron
         /// <returns>Additional handling fee</returns>
         public decimal GetAdditionalHandlingFee(IList<ShoppingCartItem> cart)
         {
-            var result = this.CalculateAdditionalFee(_orderTotalCalculationService, cart,
+            var result = _paymentService.CalculateAdditionalFee(cart,
                 _platronPaymentSettings.AdditionalFee, _platronPaymentSettings.AdditionalFeePercentage);
             return result;
         }
@@ -278,20 +277,12 @@ namespace Nop.Plugin.Payments.Platron
             return new ProcessPaymentRequest();
         }
 
-        public void GetPublicViewComponent(out string viewComponentName)
+        public string GetPublicViewComponentName()
         {
-            viewComponentName = "PaymentPlatron";
+            return "PaymentPlatron";
         }
 
-        /// <summary>
-        /// Get controller type
-        /// </summary>
-        /// <returns>Controller type</returns>
-        public Type GetControllerType()
-        {
-            return typeof(PaymentPlatronController);
-        }
- 
+
         /// <summary>
         /// Install plugin method
         /// </summary>
@@ -302,20 +293,20 @@ namespace Nop.Plugin.Payments.Platron
             _settingService.SaveSetting(settings);
 
             //locales
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId", "The Platron Merchan ID");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId.Hint", "Specify the Platron Merchan ID of your store on the website Platron.ru.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey", "Secret key");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey.Hint", "Set the secret key.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode", "Test mode");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode.Hint", "Check to enable test mode.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate", "Order description template");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate.Hint", "Template text transmitted in the description on the website. There should not be empty. $orderId - Order number.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee", "Additional fee");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee.Hint", "Enter additional fee to charge your customers.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage.Hint", "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.RedirectionTip", "For payment you will be redirected to the website Platron.ru.");
-            this.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.PaymentMethodDescription", "For payment you will be redirected to the website Platron.ru.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId", "The Platron Merchan ID");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId.Hint", "Specify the Platron Merchan ID of your store on the website Platron.ru.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey", "Secret key");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey.Hint", "Set the secret key.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode", "Test mode");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode.Hint", "Check to enable test mode.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate", "Order description template");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate.Hint", "Template text transmitted in the description on the website. There should not be empty. $orderId - Order number.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee", "Additional fee");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee.Hint", "Enter additional fee to charge your customers.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage", "Additional fee. Use percentage");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage.Hint", "Determines whether to apply a percentage additional fee to the order total. If not enabled, a fixed value is used.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.RedirectionTip", "For payment you will be redirected to the website Platron.ru.");
+            _localizationService.AddOrUpdatePluginLocaleResource("Plugins.Payments.Platron.Fields.PaymentMethodDescription", "For payment you will be redirected to the website Platron.ru.");
 
             base.Install();
         }
@@ -329,20 +320,20 @@ namespace Nop.Plugin.Payments.Platron
             _settingService.DeleteSetting<PlatronPaymentSettings>();
 
             //locales
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage.Hint");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.RedirectionTip");
-            this.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.PaymentMethodDescription");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.MerchantId.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.SecretKey.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.TestingMode.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.DescriptionTamplate.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFee.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.AdditionalFeePercentage.Hint");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.RedirectionTip");
+            _localizationService.DeletePluginLocaleResource("Plugins.Payments.Platron.Fields.PaymentMethodDescription");
 
             base.Uninstall();
         }

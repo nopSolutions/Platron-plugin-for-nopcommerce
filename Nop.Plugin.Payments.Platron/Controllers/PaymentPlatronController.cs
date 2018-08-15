@@ -14,7 +14,6 @@ using Nop.Services.Logging;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Security;
-using Nop.Services.Stores;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Mvc.Filters;
@@ -24,38 +23,33 @@ namespace Nop.Plugin.Payments.Platron.Controllers
     public class PaymentPlatronController : BasePaymentController
     {
         private const string ORDER_DESCRIPTION = "Payment order #$orderId";
-        private readonly IWorkContext _workContext;
-        private readonly IStoreService _storeService;
-        private readonly ISettingService _settingService;
-        private readonly IPaymentService _paymentService;
+
+        private readonly ILocalizationService _localizationService;
+        private readonly ILogger _logger;
         private readonly IOrderService _orderService;
         private readonly IOrderProcessingService _orderProcessingService;
-        private readonly ILogger _logger;
-        private readonly PaymentSettings _paymentSettings;
-        private readonly ILocalizationService _localizationService;
-        private readonly IWebHelper _webHelper;
+        private readonly IPaymentService _paymentService;
         private readonly IPermissionService _permissionService;
-        
-        public PaymentPlatronController(IWorkContext workContext,
-            IStoreService storeService, 
-            ISettingService settingService, 
-            IPaymentService paymentService, 
-            IOrderService orderService, 
-            IOrderProcessingService orderProcessingService, 
+        private readonly ISettingService _settingService;
+        private readonly IStoreContext _storeContext;
+        private readonly IWebHelper _webHelper;
+
+        public PaymentPlatronController(ILocalizationService localizationService,
             ILogger logger,
-            PaymentSettings paymentSettings, 
-            ILocalizationService localizationService, 
-            IWebHelper webHelper,
-            IPermissionService permissionService)
+            IOrderService orderService,
+            IOrderProcessingService orderProcessingService,
+            IPaymentService paymentService,
+            IPermissionService permissionService,
+            ISettingService settingService,
+            IStoreContext storeContext,
+            IWebHelper webHelper)
         {
-            this._workContext = workContext;
-            this._storeService = storeService;
+            this._storeContext = storeContext;
             this._settingService = settingService;
             this._paymentService = paymentService;
             this._orderService = orderService;
             this._orderProcessingService = orderProcessingService;
             this._logger = logger;
-            this._paymentSettings = paymentSettings;
             this._localizationService = localizationService;
             this._webHelper = webHelper;
             this._permissionService = permissionService;
@@ -69,7 +63,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 return AccessDeniedView();
 
             //load settings for a chosen store scope
-            var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeScope = _storeContext.ActiveStoreScopeConfiguration;
             var platronPaymentSettings = _settingService.LoadSetting<PlatronPaymentSettings>(storeScope);
 
             if (!platronPaymentSettings.DescriptionTemplate.Any())
@@ -111,7 +105,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
                 return Configure();
 
             //load settings for a chosen store scope
-            var storeScope = GetActiveStoreScopeConfiguration(_storeService, _workContext);
+            var storeScope = _storeContext.ActiveStoreScopeConfiguration;
             var platronPaymentSettings = _settingService.LoadSetting<PlatronPaymentSettings>(storeScope);
 
             //save settings
@@ -260,12 +254,12 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             var processor =
                 _paymentService.LoadPaymentMethodBySystemName("Payments.Platron") as PlatronPaymentProcessor;
             if (processor == null ||
-                !processor.IsPaymentMethodActive(_paymentSettings) || !processor.PluginDescriptor.Installed)
+                !_paymentService.IsPaymentMethodActive(processor) || !processor.PluginDescriptor.Installed)
                 throw new NopException("Platron module cannot be loaded");
             return processor;
         }
 
-        public ActionResult Success(FormCollection form)
+        public ActionResult Success()
         {
             var orderId = _webHelper.QueryString<string>("pg_order_id");
             Order order = null;
@@ -287,7 +281,7 @@ namespace Nop.Plugin.Payments.Platron.Controllers
             return RedirectToRoute("CheckoutCompleted", new { orderId = order.Id });
         }
 
-        public ActionResult CancelOrder(FormCollection form)
+        public ActionResult CancelOrder()
         {
             var orderId = _webHelper.QueryString<string>("pg_order_id");
             Order order = null;
